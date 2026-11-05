@@ -1,0 +1,13 @@
+{
+  "name": "build-cleaner",
+  "version": "1.0.0",
+  "description": "Encontra projetos iOS/Android/Flutter numa pasta e remove arquivos de build para liberar espaço",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

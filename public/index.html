@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="build-cleaner-token" content="__BUILD_CLEANER_TOKEN__">
+<title>Build Cleaner</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #fff; --text: #1c1f24; --muted: #6b7280; --border: #e3e6ea;
+    --accent: #2563eb; --danger: #dc2626; --ios: #0a84ff; --android: #16a34a; --flutter: #0891b2;
+    --chip: #eef1f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111316; --panel: #1a1d21; --text: #e7e9ec; --muted: #9aa1ab; --border: #2b2f35;
+      --accent: #3b82f6; --danger: #ef4444; --chip: #252a30;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 16px 120px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .bar { display: flex; gap: 8px; flex-wrap: wrap; }
+  input[type=text] { flex: 1; min-width: 220px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--text); font: inherit; }
+  button { padding: 9px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); color: var(--text); font: inherit; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: default; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+  button.link { border: 0; background: none; padding: 0; color: var(--accent); }
+  #status { margin: 16px 0; color: var(--muted); min-height: 20px; overflow-wrap: anywhere; }
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 16px 0; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .stat b { display: block; font-size: 20px; }
+  .stat span { color: var(--muted); font-size: 12px; }
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 12px; align-items: center; }
+  .filters button.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .filters .spacer { flex: 1; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+  .card header { display: flex; gap: 10px; align-items: center; padding: 12px 14px; }
+  .card header .name { font-weight: 600; }
+  .card header .path { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+  .card header .grow { flex: 1; min-width: 0; }
+  .size { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
+  .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; color: #fff; text-transform: uppercase; letter-spacing: .03em; }
+  .tag.ios { background: var(--ios); } .tag.android { background: var(--android); } .tag.flutter { background: var(--flutter); }
+  .card ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border); }
+  .card li { display: flex; gap: 10px; align-items: center; padding: 8px 14px 8px 40px; border-top: 1px solid var(--border); }
+  .card li:first-child { border-top: 0; }
+  .card li .grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .card li small { color: var(--muted); display: block; }
+  .card li.deleted { opacity: .45; text-decoration: line-through; }
+  .empty { color: var(--muted); padding: 10px 14px 12px 40px; border-top: 1px solid var(--border); font-size: 13px; }
+  .pill { font-size: 11px; background: var(--chip); color: var(--muted); padding: 1px 6px; border-radius: 4px; margin-left: 6px; }
+  footer { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--border); padding: 12px 16px; }
+  footer .inner { max-width: 980px; margin: 0 auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  footer .grow { flex: 1; }
+  dialog { border: 1px solid var(--border); border-radius: 12px; background: var(--panel); color: var(--text); max-width: 560px; width: calc(100% - 32px); }
+  #confirmList { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+  #confirmList li { display: flex; gap: 10px; align-items: center; padding: 6px 10px; border-top: 1px solid var(--border); font-size: 13px; }
+  #confirmList li:first-child { border-top: 0; }
+  #confirmList li .grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  #confirmList li small { color: var(--muted); display: block; }
+  #confirmList li.off { background: color-mix(in srgb, var(--danger) 10%, transparent); }
+  #confirmList .tag { font-size: 10px; padding: 1px 6px; }
+  .warn { color: var(--danger); font-weight: 600; }
+  .tools { border: 1px solid color-mix(in srgb, #d97706 50%, var(--border)); background: color-mix(in srgb, #d97706 10%, transparent); border-radius: 8px; padding: 10px 12px; margin: 0 0 12px; font-size: 13px; }
+  .tools b { display: block; margin-bottom: 2px; }
+  .tools .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+  .tools button { padding: 5px 10px; font-size: 13px; }
+  .toggle { display: flex; gap: 6px; align-items: center; cursor: pointer; user-select: none; }
+  dialog::backdrop { background: rgba(0,0,0,.4); }
+  dialog .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .saved { display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--android); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+  .saved > div { flex: 1; }
+  .saved span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .saved b { display: block; font-size: 30px; font-variant-numeric: tabular-nums; }
+  .saved small { color: var(--muted); }
+  #history { list-style: none; margin: -4px 0 12px; padding: 6px 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; max-height: 220px; overflow: auto; }
+  #history li { display: flex; justify-content: space-between; padding: 5px 0; border-top: 1px solid var(--border); font-size: 13px; }
+  #history li:first-child { border-top: 0; }
+  input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); flex: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Build Cleaner</h1>
+  <p class="sub">Encontra projetos iOS, Android e Flutter e remove arquivos de build que podem ser recriados.</p>
+
+  <div class="saved">
+    <div>
+      <span>Total economizado com o app</span>
+      <b id="savedTotal">0 B</b>
+      <small id="savedMeta">Nenhuma limpeza ainda</small>
+    </div>
+    <button class="link" id="histToggle" hidden>Ver histórico</button>
+  </div>
+  <ul id="history" hidden></ul>
+
+  <div class="bar">
+    <input id="path" type="text" placeholder="/Users/voce/Projetos" spellcheck="false">
+    <button id="pick" hidden>Escolher pasta…</button>
+    <button id="scan" class="primary">Escanear</button>
+  </div>
+  <div id="status"></div>
+
+  <section id="results" hidden>
+    <div class="summary" id="summary"></div>
+    <div class="filters" id="filters">
+      <button data-f="all" class="on">Todos</button>
+      <button data-f="ios">iOS</button>
+      <button data-f="android">Android</button>
+      <button data-f="flutter">Flutter</button>
+      <span class="spacer"></span>
+      <button class="link" id="selRec">Selecionar recomendados</button>
+      <button class="link" id="selNone">Limpar seleção</button>
+    </div>
+    <div id="list"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="inner">
+    <div class="grow" id="selInfo">Nada selecionado</div>
+    <label class="toggle" id="trashWrap" hidden><input type="checkbox" id="useTrash"> Mover para a Lixeira</label>
+    <button id="delete" class="danger" disabled>Deletar selecionados</button>
+  </div>
+</footer>
+
+<dialog id="confirm">
+  <h3 style="margin-top:0" id="confirmTitle">Deletar arquivos de build?</h3>
+  <p id="confirmText"></p>
+  <p id="confirmHidden" class="warn" hidden></p>
+  <div id="confirmTools" class="tools" hidden></div>
+  <ul id="confirmList"></ul>
+  <p style="color:var(--muted);font-size:13px" id="confirmNote"></p>
+  <div class="actions">
+    <button value="cancel" id="cancelBtn">Cancelar</button>
+    <button class="danger" id="okBtn">Deletar</button>
+  </div>
+</dialog>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const LABEL = { ios: 'iOS', android: 'Android', flutter: 'Flutter' };
+let projects = [];
+let selected = new Set();
+let deleted = new Set();
+let filter = 'all';
+let source = null;
+
+function fmt(bytes) {
+  if (!bytes) return '0 B';
+  const u = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), u.length - 1);
+  return (bytes / 1024 ** i).toFixed(i >= 2 ? 1 : 0) + ' ' + u[i];
+}
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const artifacts = () => projects.flatMap((p) => p.artifacts);
+const sizeOf = (paths) => artifacts().filter((a) => paths.has(a.path)).reduce((s, a) => s + a.size, 0);
+
+const TOKEN = document.querySelector('meta[name="build-cleaner-token"]').content;
+
+// Lança erro com a mensagem do servidor quando a resposta não é 2xx.
+async function request(url, opts = {}) {
+  const r = await fetch(url, { ...opts, headers: { ...opts.headers, 'X-Build-Cleaner-Token': TOKEN } });
+  let data;
+  try { data = await r.json(); } catch { data = {}; }
+  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  return data;
+}
+const get = (url) => request(url);
+const api = (url, body) => request(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+
+function renderStats(s) {
+  $('#savedTotal').textContent = fmt(s.totalFreed);
+  $('#savedMeta').textContent = s.history.length
+    ? `${s.totalItems} pastas removidas em ${s.history.length} limpezas · última em ${new Date(s.history[0].date).toLocaleString('pt-BR')}`
+    : 'Nenhuma limpeza ainda';
+  $('#histToggle').hidden = !s.history.length;
+  $('#history').innerHTML = s.history.map((h) =>
+    `<li><span>${new Date(h.date).toLocaleString('pt-BR')} · ${h.items} pastas${h.mode === 'trash' ? ' · Lixeira' : ''}</span><b>${fmt(h.freed)}</b></li>`).join('');
+}
+$('#histToggle').onclick = () => {
+  $('#history').hidden = !$('#history').hidden;
+  $('#histToggle').textContent = $('#history').hidden ? 'Ver histórico' : 'Ocultar histórico';
+};
+
+async function init() {
+  get('/api/stats').then(renderStats).catch((err) => {
+    $('#savedMeta').textContent = 'Não foi possível ler o contador: ' + err.message;
+  });
+  try { $('#path').value = localStorage.getItem('lastPath') || ''; } catch {}
+  try {
+    const info = await get('/api/info');
+    $('#pick').hidden = !info.canPick;
+    $('#trashWrap').hidden = !info.canTrash;
+    let pref = null;
+    try { pref = localStorage.getItem('useTrash'); } catch {}
+    $('#useTrash').checked = info.canTrash && pref !== '0'; // padrão: Lixeira, mais seguro
+    updateDeleteLabel();
+    if (!$('#path').value) $('#path').placeholder = info.home + '/Projetos';
+  } catch (err) {
+    $('#status').textContent = 'Erro ao conectar ao servidor: ' + err.message;
+  }
+}
+
+$('#pick').onclick = async () => {
+  $('#pick').disabled = true;
+  try {
+    const r = await api('/api/pick-folder');
+    if (r.path) { $('#path').value = r.path; startScan(); }
+  } catch (err) {
+    $('#status').textContent = 'Erro: ' + err.message;
+  } finally {
+    $('#pick').disabled = false;
+  }
+};
+
+$('#path').addEventListener('keydown', (e) => { if (e.key === 'Enter') startScan(); });
+$('#scan').onclick = startScan;
+
+function startScan() {
+  const p = $('#path').value.trim();
+  if (!p) { $('#status').textContent = 'Informe uma pasta.'; return; }
+  try { localStorage.setItem('lastPath', p); } catch {}
+  source?.close();
+  selected.clear(); deleted.clear();
+  $('#results').hidden = true;
+  $('#scan').disabled = true;
+  let found = 0;
+  $('#status').textContent = 'Procurando projetos…';
+  source = new EventSource('/api/scan?path=' + encodeURIComponent(p) + '&token=' + encodeURIComponent(TOKEN));
+  source.addEventListener('progress', (e) => {
+    const d = JSON.parse(e.data);
+    $('#status').textContent = d.phase === 'scan'
+      ? `Procurando… ${d.visited} pastas · ${found} projetos · ${d.current}`
+      : `Calculando tamanhos ${d.done}/${d.total}…`;
+  });
+  source.addEventListener('project', () => found++);
+  source.addEventListener('done', (e) => {
+    source.close();
+    const d = JSON.parse(e.data);
+    projects = d.projects;
+    artifacts().filter((a) => a.recommended).forEach((a) => selected.add(a.path));
+    $('#scan').disabled = false;
+    $('#status').textContent = projects.length ? `Scan concluído em ${d.root}` : `Nenhum projeto iOS, Android ou Flutter encontrado em ${d.root}.`;
+    $('#results').hidden = !projects.length;
+    render();
+  });
+  source.addEventListener('fail', (e) => {
+    source.close();
+    $('#scan').disabled = false;
+    $('#status').textContent = 'Erro: ' + JSON.parse(e.data).message;
+  });
+  source.onerror = () => {
+    if (source.readyState === EventSource.CLOSED) return;
+    source.close();
+    $('#scan').disabled = false;
+    $('#status').textContent = 'Conexão com o servidor perdida.';
+  };
+}
+
+function render() {
+  const live = artifacts().filter((a) => !deleted.has(a.path));
+  const counts = { ios: 0, android: 0, flutter: 0 };
+  projects.forEach((p) => counts[p.type]++);
+  $('#summary').innerHTML = [
+    [projects.length, 'projetos encontrados'],
+    [counts.ios + ' / ' + counts.android + ' / ' + counts.flutter, 'iOS / Android / Flutter'],
+    [fmt(live.reduce((s, a) => s + a.size, 0)), 'em arquivos de build'],
+    [fmt(sizeOf(deleted)), 'liberados nesta sessão'],
+  ].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
+
+  $('#filters').querySelectorAll('[data-f]').forEach((b) => b.classList.toggle('on', b.dataset.f === filter));
+
+  $('#list').innerHTML = projects.filter((p) => filter === 'all' || p.type === filter).map((p, i) => {
+    const idx = projects.indexOf(p);
+    const live = p.artifacts.filter((a) => !deleted.has(a.path));
+    const allOn = live.length && live.every((a) => selected.has(a.path));
+    const items = p.artifacts.map((a) => {
+      const gone = deleted.has(a.path);
+      return `<li class="${gone ? 'deleted' : ''}">
+        <input type="checkbox" data-a="${esc(a.path)}" ${selected.has(a.path) ? 'checked' : ''} ${gone ? 'disabled' : ''}>
+        <div class="grow">${esc(a.label)}${a.recommended ? '' : '<span class="pill">opcional</span>'}${a.global ? '<span class="pill">~/Library</span>' : ''}
+          <small>${esc(a.path)}</small></div>
+        <span class="size">${fmt(a.size)}</span>
+      </li>`;
+    }).join('');
+    return `<div class="card">
+      <header>
+        <input type="checkbox" data-p="${idx}" ${allOn ? 'checked' : ''} ${live.length ? '' : 'disabled'}>
+        <span class="tag ${p.type}">${LABEL[p.type]}</span>
+        <div class="grow"><div class="name">${esc(p.name)}</div><div class="path">${esc(p.path)}</div></div>
+        <button class="link" data-reveal="${esc(p.path)}">Abrir</button>
+        <span class="size">${fmt(live.reduce((s, a) => s + a.size, 0))}</span>
+      </header>
+      ${p.artifacts.length ? `<ul>${items}</ul>` : '<div class="empty">Nada para limpar.</div>'}
+    </div>`;
+  }).join('');
+
+  const n = [...selected].filter((p) => !deleted.has(p)).length;
+  $('#selInfo').textContent = n ? `${n} itens selecionados · ${fmt(sizeOf(selected))}` : 'Nada selecionado';
+  $('#delete').disabled = !n;
+}
+
+$('#filters').addEventListener('click', (e) => {
+  if (e.target.dataset.f) { filter = e.target.dataset.f; render(); }
+});
+$('#selRec').onclick = () => { artifacts().forEach((a) => a.recommended && !deleted.has(a.path) && selected.add(a.path)); render(); };
+$('#selNone').onclick = () => { selected.clear(); render(); };
+
+$('#list').addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.dataset.a) t.checked ? selected.add(t.dataset.a) : selected.delete(t.dataset.a);
+  if (t.dataset.p) projects[t.dataset.p].artifacts.filter((a) => !deleted.has(a.path))
+    .forEach((a) => t.checked ? selected.add(a.path) : selected.delete(a.path));
+  render();
+});
+$('#list').addEventListener('click', (e) => {
+  if (e.target.dataset.reveal) api('/api/reveal', { path: e.target.dataset.reveal }).catch(() => {});
+});
+
+// Itens que serão de fato enviados para exclusão, com o projeto de cada um.
+function pendingItems() {
+  return projects.flatMap((p) => p.artifacts
+    .filter((a) => selected.has(a.path) && !deleted.has(a.path))
+    .map((a) => ({ project: p, artifact: a })));
+}
+
+const useTrash = () => !$('#trashWrap').hidden && $('#useTrash').checked;
+function updateDeleteLabel() {
+  $('#delete').textContent = useTrash() ? 'Mover para a Lixeira' : 'Deletar selecionados';
+}
+$('#useTrash').addEventListener('change', () => {
+  try { localStorage.setItem('useTrash', $('#useTrash').checked ? '1' : '0'); } catch {}
+  updateDeleteLabel();
+});
+
+// Avisa sobre Xcode / Android Studio / daemons do Gradle abertos, que podem recriar
+// ou travar arquivos durante a limpeza.
+function renderTools(tools) {
+  const box = $('#confirmTools');
+  box.hidden = !tools.length;
+  if (!tools.length) { box.innerHTML = ''; return; }
+  const gradle = tools.find((t) => t.kind === 'gradle');
+  const names = tools.map((t) => t.count > 1 ? `${t.label} (${t.count})` : t.label).join(', ');
+  box.innerHTML = `<b>Ferramentas abertas: ${esc(names)}</b>
+    Elas podem estar usando essas pastas. Feche o Xcode / Android Studio antes de continuar.
+    ${gradle ? `<div class="row"><button id="stopGradle">Parar daemons do Gradle</button><span id="stopGradleMsg"></span></div>` : ''}`;
+  $('#stopGradle')?.addEventListener('click', async (e) => {
+    e.target.disabled = true;
+    try {
+      const r = await api('/api/stop-gradle');
+      renderTools(r.tools);
+      const msg = $('#stopGradleMsg');
+      if (msg) msg.textContent = `${r.stopped} daemon(s) encerrado(s); ainda em execução.`;
+      else if (!r.tools.length) { box.hidden = false; box.textContent = `${r.stopped} daemon(s) do Gradle encerrado(s).`; }
+    } catch (err) {
+      e.target.disabled = false;
+      $('#stopGradleMsg').textContent = 'Erro: ' + err.message;
+    }
+  });
+}
+
+$('#delete').onclick = () => {
+  const trash = useTrash();
+  $('#confirmTitle').textContent = trash ? 'Mover arquivos de build para a Lixeira?' : 'Deletar arquivos de build?';
+  $('#okBtn').textContent = trash ? 'Mover para a Lixeira' : 'Deletar';
+  $('#confirmNote').textContent = trash
+    ? 'As pastas vão para a Lixeira e podem ser recuperadas. O espaço só é liberado quando a Lixeira for esvaziada. Elas serão recriadas no próximo build.'
+    : 'Os arquivos são apagados permanentemente (não vão para a Lixeira). Eles serão recriados no próximo build.';
+  $('#confirmTools').hidden = true;
+  get('/api/processes').then((r) => renderTools(r.tools)).catch(() => {});
+  const items = pendingItems();
+  const paths = new Set(items.map((i) => i.artifact.path));
+  const hidden = items.filter((i) => filter !== 'all' && i.project.type !== filter);
+  $('#confirmText').textContent = `${items.length} pastas serão removidas, liberando aproximadamente ${fmt(sizeOf(paths))}.`;
+  $('#confirmHidden').hidden = !hidden.length;
+  $('#confirmHidden').textContent = hidden.length
+    ? `Atenção: ${hidden.length} ${hidden.length === 1 ? 'item selecionado não está visível' : 'itens selecionados não estão visíveis'} no filtro atual (${LABEL[filter]}) e também serão removidos.`
+    : '';
+  $('#confirmList').innerHTML = items.map(({ project: p, artifact: a }) => {
+    const off = filter !== 'all' && p.type !== filter;
+    return `<li class="${off ? 'off' : ''}"><div class="grow"><span class="tag ${p.type}">${LABEL[p.type]}</span> ${esc(p.name)} · ${esc(a.label)}<small>${esc(a.path)}</small></div><span class="size">${fmt(a.size)}</span></li>`;
+  }).join('');
+  $('#confirm').showModal();
+};
+$('#cancelBtn').onclick = () => $('#confirm').close();
+$('#okBtn').onclick = async () => {
+  $('#confirm').close();
+  const paths = pendingItems().map((i) => i.artifact.path);
+  const mode = useTrash() ? 'trash' : 'delete';
+  $('#delete').disabled = true;
+  $('#scan').disabled = true;
+  $('#status').textContent = mode === 'trash' ? 'Movendo para a Lixeira…' : 'Deletando…';
+  try {
+    const { results, stats, statsError } = await api('/api/delete', { paths, mode });
+    if (stats) renderStats(stats);
+    const fails = results.filter((r) => !r.ok);
+    results.filter((r) => r.ok).forEach((r) => { deleted.add(r.path); selected.delete(r.path); });
+    const freed = results.reduce((s, r) => s + (r.freed || 0), 0);
+    $('#status').textContent = (mode === 'trash'
+      ? `${fmt(freed)} movidos para a Lixeira (esvazie-a para liberar o espaço).`
+      : `Liberado ${fmt(freed)}.`)
+      + (fails.length ? ` ${fails.length} falharam: ` + fails.map((f) => `${f.path} (${f.error})`).join('; ') : '')
+      + (statsError ? ` ${statsError}` : '');
+  } catch (err) {
+    $('#status').textContent = 'Erro ao deletar: ' + err.message + '. Refaça o scan para ver o estado atual.';
+  } finally {
+    $('#scan').disabled = false;
+    render();
+  }
+};
+
+init();
+</script>
+</body>
+</html>
