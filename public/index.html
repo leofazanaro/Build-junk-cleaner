@@ -9,6 +9,7 @@
   :root {
     --bg: #f6f7f9; --panel: #fff; --text: #1c1f24; --muted: #6b7280; --border: #e3e6ea;
     --accent: #2563eb; --danger: #dc2626; --ios: #0a84ff; --android: #16a34a; --flutter: #0891b2;
+    --react-native: #7c3aed; --node: #4d7c0f;
     --chip: #eef1f5;
   }
   @media (prefers-color-scheme: dark) {
@@ -46,6 +47,7 @@
   .size { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
   .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; color: #fff; text-transform: uppercase; letter-spacing: .03em; }
   .tag.ios { background: var(--ios); } .tag.android { background: var(--android); } .tag.flutter { background: var(--flutter); }
+  .tag.react-native { background: var(--react-native); } .tag.node { background: var(--node); }
   .card ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border); }
   .card li { display: flex; gap: 10px; align-items: center; padding: 8px 14px 8px 40px; border-top: 1px solid var(--border); }
   .card li:first-child { border-top: 0; }
@@ -113,6 +115,8 @@
       <button data-f="ios">iOS</button>
       <button data-f="android">Android</button>
       <button data-f="flutter">Flutter</button>
+      <button data-f="react-native">React Native</button>
+      <button data-f="node">Node</button>
       <span class="spacer"></span>
       <button class="link" id="selRec">Selecionar recomendados</button>
       <button class="link" id="selNone">Limpar seleção</button>
@@ -144,7 +148,7 @@
 
 <script>
 const $ = (s) => document.querySelector(s);
-const LABEL = { ios: 'iOS', android: 'Android', flutter: 'Flutter' };
+const LABEL = { ios: 'iOS', android: 'Android', flutter: 'Flutter', 'react-native': 'React Native', node: 'Node' };
 let projects = [];
 let selected = new Set();
 let deleted = new Set();
@@ -265,11 +269,12 @@ function startScan() {
 
 function render() {
   const live = artifacts().filter((a) => !deleted.has(a.path));
-  const counts = { ios: 0, android: 0, flutter: 0 };
+  const counts = Object.fromEntries(Object.keys(LABEL).map((t) => [t, 0]));
   projects.forEach((p) => counts[p.type]++);
+  const types = Object.keys(LABEL).filter((t) => counts[t]);
   $('#summary').innerHTML = [
     [projects.length, 'projetos encontrados'],
-    [counts.ios + ' / ' + counts.android + ' / ' + counts.flutter, 'iOS / Android / Flutter'],
+    [types.map((t) => counts[t]).join(' / ') || 0, types.map((t) => LABEL[t]).join(' / ') || 'por plataforma'],
     [fmt(live.reduce((s, a) => s + a.size, 0)), 'em arquivos de build'],
     [fmt(sizeOf(deleted)), 'liberados nesta sessão'],
   ].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');

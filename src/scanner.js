@@ -92,6 +92,23 @@ async function detectFlutter(dir, names) {
   return { type: 'flutter', name: m ? m[1] : path.basename(dir), path: dir };
 }
 
+// Qualquer package.json vira um projeto: React Native/Expo se depender deles, senão Node.
+// Não usa contexto: pacotes de um monorepo têm seus próprios node_modules e dist.
+async function detectJS(dir, names) {
+  if (!names.has('package.json')) return null;
+  let pkg;
+  try {
+    pkg = JSON.parse(await readText(path.join(dir, 'package.json')));
+  } catch {
+    return null;
+  }
+  if (!pkg || typeof pkg !== 'object') return null;
+  const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+  const type = deps['react-native'] || deps.expo ? 'react-native' : 'node';
+  const name = typeof pkg.name === 'string' && pkg.name ? pkg.name : path.basename(dir);
+  return { type, name, path: dir };
+}
+
 // ---------- Artefatos ----------
 
 async function collect(candidates) {
@@ -156,6 +173,42 @@ async function flutterArtifacts(root) {
     { path: path.join(root, 'build'), label: 'build/ (saída do Flutter)' },
     { path: path.join(root, '.dart_tool'), label: '.dart_tool (recriado com "flutter pub get")' },
   ]);
+}
+
+// Caches de frameworks e bundlers: sempre seguros de apagar.
+const JS_CACHES = [
+  ['.next', 'Next.js'], ['.nuxt', 'Nuxt'], ['.output', 'Nuxt/Nitro'], ['.svelte-kit', 'SvelteKit'],
+  ['.angular', 'cache do Angular'], ['.turbo', 'Turborepo'], ['.parcel-cache', 'Parcel'],
+];
+
+// Padrões do .gitignore do projeto e dos ancestrais até a raiz do repositório (onde está o .git).
+// Nos ancestrais só valem padrões sem barra no início, que se aplicam a qualquer nível.
+async function gitignoredNames(root) {
+  const names = new Set();
+  for (let dir = root; ; dir = path.dirname(dir)) {
+    for (let line of (await readText(path.join(dir, '.gitignore'))).split('\n')) {
+      line = line.trim().replace(/^\*\*\//, '').replace(/\/$/, '');
+      if (dir === root) line = line.replace(/^\//, '');
+      if (line && !line.includes('/')) names.add(line);
+    }
+    if (path.dirname(dir) === dir || (await fs.stat(path.join(dir, '.git')).catch(() => null))) break;
+  }
+  return names;
+}
+
+async function jsArtifacts(root, type) {
+  // dist/ e coverage/ às vezes são versionados; só vêm marcados se estiverem no .gitignore.
+  const ignored = await gitignoredNames(root);
+  const list = await collect([
+    { path: path.join(root, 'node_modules'), label: 'node_modules (recriado com "npm install")', recommended: false },
+    { path: path.join(root, 'dist'), label: 'dist/ (saída do build)', recommended: ignored.has('dist') },
+    { path: path.join(root, 'coverage'), label: 'coverage/ (relatórios de teste)', recommended: ignored.has('coverage') },
+    ...JS_CACHES.map(([dir, what]) => ({ path: path.join(root, dir), label: `${dir} (${what})` })),
+  ]);
+  if (type === 'react-native') {
+    list.push(...await collect([{ path: path.join(root, '.expo'), label: '.expo (cache do Expo)' }]));
+  }
+  return list;
 }
 
 // Mapeia as pastas de ~/Library/Developer/Xcode/DerivedData para o workspace de origem.
@@ -283,11 +336,14 @@ export async function scan(rootInput, { onProgress = () => {}, onProject = () =>
         next.flutter = dir;
       }
     }
+    const js = await detectJS(dir, names);
+    if (js) found.push(js);
 
     for (const p of found) {
       p.artifacts = p.type === 'android' ? await androidArtifacts(dir)
         : p.type === 'ios' ? await iosArtifacts(dir, derivedData)
-        : await flutterArtifacts(dir);
+        : p.type === 'flutter' ? await flutterArtifacts(dir)
+        : await jsArtifacts(dir, p.type);
       projects.push(p);
       onProject(p);
     }

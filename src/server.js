@@ -69,7 +69,8 @@ let allowed = new Map();
 let currentScan = null;
 
 const ARTIFACT_NAMES = new Set(['build', '.gradle', '.kotlin', '.cxx', '.externalNativeBuild',
-  'DerivedData', '.build', 'Pods', '.dart_tool']);
+  'DerivedData', '.build', 'Pods', '.dart_tool', 'node_modules', 'dist', 'coverage', '.next', '.nuxt',
+  '.output', '.svelte-kit', '.angular', '.turbo', '.parcel-cache', '.expo']);
 
 function isSafeToDelete(p) {
   if (!allowed.has(p)) return false;
@@ -113,7 +114,7 @@ function isTrusted(req, url) {
 function pickFolder() {
   return new Promise((resolve) => {
     if (process.platform !== 'darwin') return resolve({ unsupported: true });
-    const script = 'POSIX path of (choose folder with prompt "Escolha a pasta para procurar projetos iOS, Android e Flutter")';
+    const script = 'POSIX path of (choose folder with prompt "Escolha a pasta para procurar projetos iOS, Android, Flutter, React Native e Node")';
     execFile('osascript', ['-e', script], (err, stdout) => {
       if (err) return resolve({ cancelled: true });
       resolve({ path: stdout.trim().replace(/\/$/, '') || '/' });
